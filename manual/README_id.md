@@ -107,6 +107,16 @@ File log ditulis ke direktori log yang dikonfigurasi dan dapat dilampirkan saat 
   <img src="../assets/screenshot/home-dark.png" width="48%" />
 </p>
 
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
+</p>
+
 ### Tambah Instance & Pengaturan
 <p align="center">
   <img src="../assets/screenshot/add.png" width="48%" />

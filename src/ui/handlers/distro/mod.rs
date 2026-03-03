@@ -15,6 +15,7 @@ pub mod install_logic;
 pub mod move_distro;
 pub mod move_logic;
 pub mod settings_logic;
+pub mod config_logic;
 
 pub fn sanitize_instance_name(name: &str) -> String {
     let mut sanitized: String = name.chars()

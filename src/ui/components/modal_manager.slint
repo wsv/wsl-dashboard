@@ -10,6 +10,7 @@ import {
     SettingsDialog,
     RootFSHelpDialog,
     VSCodeStartupDialog,
+    WslConfigDialog,
 } from "dialogs.slint";
 import { AppInfo, Information, RootFSHelpItem, AppI18n } from "../theme.slint";
 
@@ -28,6 +29,7 @@ export component ModalManager inherits Rectangle {
     in-out property <bool> show_settings: false;
     in property <bool> show_rootfs_help: false;
     in property <bool> show_vscode_startup: false;
+    in-out property <bool> show_wsl_config: false;
     in property <bool> is_installing: false;
 
     // Data
@@ -61,6 +63,32 @@ export component ModalManager inherits Rectangle {
     in property <Information> information;
     in property <[RootFSHelpItem]> rootfs_help_list;
 
+    // WSL Config Dialog properties
+    in property <string> wsl_config_distro_name: "";
+    in-out property <bool> wsl_config_automount_enabled: true;
+    in-out property <bool> wsl_config_automount_mount_fs_tab: true;
+    in-out property <string> wsl_config_automount_root: "/mnt/";
+    in-out property <string> wsl_config_automount_options: "";
+    in-out property <bool> wsl_config_network_generate_hosts: true;
+    in-out property <bool> wsl_config_network_generate_resolv_conf: true;
+    in-out property <string> wsl_config_network_hostname: "";
+    in-out property <bool> wsl_config_interop_enabled: true;
+    in-out property <bool> wsl_config_interop_append_windows_path: true;
+    in-out property <string> wsl_config_user_default: "";
+    in-out property <bool> wsl_config_boot_systemd: false;
+    in-out property <string> wsl_config_boot_command: "";
+    in-out property <bool> wsl_config_boot_protect_binfmt: true;
+    in-out property <bool> wsl_config_gpu_enabled: true;
+    in-out property <bool> wsl_config_time_use_windows_timezone: true;
+    in property <bool> wsl_config_boot_supported: true;
+    in property <bool> wsl_config_gpu_supported: true;
+    in property <bool> wsl_config_time_supported: true;
+    in property <bool> wsl_config_version_detection_failed: false;
+    in property <string> wsl_config_version_string: "";
+    in property <string> wsl_config_user_error: "";
+    in property <string> wsl_config_command_error: "";
+    in property <string> wsl_config_preview_content: "";
+
     // Callbacks
     callback confirm_delete();
     callback cancel_delete();
@@ -89,12 +117,16 @@ export component ModalManager inherits Rectangle {
     callback close_settings();
     callback close_rootfs_help();
     callback close_vscode_startup();
+    callback save_wsl_config();
+    callback save_wsl_config_and_restart();
+    callback close_wsl_config();
+    callback request_wsl_config_preview();
     callback open_url(string);
     if (show_delete): ConfirmationDialog {
         width: 100%;
         height: 100%;
         dialog_height: 180px;
-        title_text: AppI18n.t("dialog.delete_title", [AppI18n.version]);
+        title_text: AppI18n.t("dialog.delete_title", [delete_target_name, AppI18n.version]);
         message: AppI18n.t("dialog.delete_msg", [delete_target_name, AppI18n.version]);
         confirm => {
             root.confirm_delete();
@@ -162,7 +194,7 @@ export component ModalManager inherits Rectangle {
         width: 100%;
         height: 100%;
         dialog_height: 250px;
-        title_text: AppI18n.t("dialog.move_title", []);
+        title_text: AppI18n.t("dialog.move_title", [root.move_source_name, AppI18n.version]);
         message: root.move_confirm_message;
         confirm => {
             root.confirm_move_action();
@@ -276,6 +308,46 @@ export component ModalManager inherits Rectangle {
         height: 100%;
         close => {
             root.close_vscode_startup();
+        }
+    }
+    if (show_wsl_config): WslConfigDialog {
+        width: 100%;
+        height: 100%;
+        distro_name: root.wsl_config_distro_name;
+        automount_enabled <=> root.wsl_config_automount_enabled;
+        automount_mount_fs_tab <=> root.wsl_config_automount_mount_fs_tab;
+        automount_root <=> root.wsl_config_automount_root;
+        automount_options <=> root.wsl_config_automount_options;
+        network_generate_hosts <=> root.wsl_config_network_generate_hosts;
+        network_generate_resolv_conf <=> root.wsl_config_network_generate_resolv_conf;
+        network_hostname <=> root.wsl_config_network_hostname;
+        interop_enabled <=> root.wsl_config_interop_enabled;
+        interop_append_windows_path <=> root.wsl_config_interop_append_windows_path;
+        user_default <=> root.wsl_config_user_default;
+        boot_systemd <=> root.wsl_config_boot_systemd;
+        boot_command <=> root.wsl_config_boot_command;
+        boot_protect_binfmt <=> root.wsl_config_boot_protect_binfmt;
+        gpu_enabled <=> root.wsl_config_gpu_enabled;
+        time_use_windows_timezone <=> root.wsl_config_time_use_windows_timezone;
+        boot_supported: root.wsl_config_boot_supported;
+        gpu_supported: root.wsl_config_gpu_supported;
+        time_supported: root.wsl_config_time_supported;
+        version_detection_failed: root.wsl_config_version_detection_failed;
+        wsl_version_string: root.wsl_config_version_string;
+        user_error: root.wsl_config_user_error;
+        command_error: root.wsl_config_command_error;
+        preview_content: root.wsl_config_preview_content;
+        save => {
+            root.save_wsl_config();
+        }
+        save_and_restart => {
+            root.save_wsl_config_and_restart();
+        }
+        close => {
+            root.close_wsl_config();
+        }
+        request_preview => {
+            root.request_wsl_config_preview();
         }
     }
 }

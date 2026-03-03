@@ -107,6 +107,16 @@ Loggfiler skrivs till den konfigurerade loggkatalogen och kan bifogas vid felrap
   <img src="../assets/screenshot/home-dark.png" width="48%" />
 </p>
 
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
+</p>
+
 ### Lägg till instans & Inställningar
 <p align="center">
   <img src="../assets/screenshot/add.png" width="48%" />

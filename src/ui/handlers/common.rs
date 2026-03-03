@@ -34,6 +34,11 @@ pub fn setup(app: &AppWindow, app_handle: slint::Weak<AppWindow>, app_state: Arc
                     }
                 }).unwrap();
             }
+
+            // Tab 2 is "USB devices" — auto-refresh on entry
+            if tab == 2 {
+                app.invoke_refresh_usb(true);
+            }
         }
     });
 

@@ -24,3 +24,32 @@ pub fn get_disk_free_space(path: &str) -> u64 {
 pub fn get_c_drive_free_space() -> u64 {
     get_disk_free_space("C:\\")
 }
+
+pub fn copy_to_clipboard(text: &str) -> Result<(), String> {
+    use std::process::{Command, Stdio};
+    use std::io::Write;
+
+    let mut cmd = Command::new("clip");
+    cmd.stdin(Stdio::piped());
+    
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let mut child = cmd.spawn()
+        .map_err(|e| format!("Failed to spawn clip.exe: {}", e))?;
+
+    let mut stdin = child.stdin.take().ok_or("Failed to open stdin for clip.exe")?;
+    stdin.write_all(text.as_bytes()).map_err(|e| format!("Failed to write to clip.exe: {}", e))?;
+    drop(stdin);
+
+    let status = child.wait().map_err(|e| format!("Failed to wait for clip.exe: {}", e))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("clip.exe exited with status: {}", status))
+    }
+}

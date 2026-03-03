@@ -89,6 +89,8 @@ pub struct Config {
     pub settings: UserSettings,
     #[serde(default)]
     pub tray: TraySettings,
+    #[serde(default)]
+    pub usb: UsbConfig,
 }
 
 impl Config {
@@ -136,8 +138,26 @@ impl Config {
             },
 
             tray: TraySettings::default(),
+            usb: UsbConfig::default(),
         }
     }
+}
+
+// --- USB Configuration ---
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UsbConfig {
+    #[serde(rename = "auto-attach-list", default)]
+    pub auto_attach_list: Vec<UsbAutoAttachDevice>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsbAutoAttachDevice {
+    #[serde(rename = "bus-id")]
+    pub bus_id: String,
+    #[serde(rename = "vid-pid")]
+    pub vid_pid: String,
+    pub distribution: String,
 }
 
 // --- Instance-specific configuration (instances.toml) ---

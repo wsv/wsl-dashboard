@@ -15,16 +15,22 @@ pub fn spawn_check_task(app_handle: slint::Weak<AppWindow>, app_state: Arc<Mutex
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
         // Read last popup time and check update interval
-        let (last_check_time, check_update_days, timezone) = {
+        let (last_check_time, check_update_days, timezone, is_silent_mode) = {
             let state = app_state_check.lock().await;
             let settings = state.config_manager.get_settings();
             let timezone = state.config_manager.get_config().system.timezone.clone();
             (
                 settings.check_time.parse::<i64>().unwrap_or(0),
                 settings.check_update as i64,
-                timezone
+                timezone,
+                state.is_silent_mode
             )
         };
+        
+        if is_silent_mode {
+            info!("Skipping startup checks (silent mode)");
+            return;
+        }
         
         let now_ms = chrono::Utc::now().timestamp_millis();
         let interval_ms: i64 = check_update_days * 24 * 60 * 60 * 1000;

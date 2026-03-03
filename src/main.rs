@@ -11,6 +11,7 @@ use slint::{ComponentHandle, Model};
 
 // Define application modules
 mod wsl;
+mod usb;
 mod utils;
 mod ui;
 mod config;
@@ -85,7 +86,7 @@ async fn main() {
     app::autostart::repair_autostart_path(tray_settings.autostart, tray_settings.start_minimized).await;
 
     // Create application state
-    let app_state = Arc::new(Mutex::new(AppState::new(config_manager, logging_system)));
+    let app_state = Arc::new(Mutex::new(AppState::new(config_manager, logging_system, is_silent_mode)));
     
     // Create Slint application
     let app = AppWindow::new().expect("Failed to create app");
@@ -126,7 +127,12 @@ async fn main() {
         let ah = app_handle.clone();
         let silent = is_silent_mode;
         move || {
-            if let Err(e) = app::tray::SystemTray::initialize(ah.clone(), !silent) {
+            let current_visible = if let Some(app) = ah.upgrade() {
+                app.get_is_window_visible()
+            } else {
+                !silent
+            };
+            if let Err(e) = app::tray::SystemTray::initialize(ah.clone(), current_visible) {
                 error!("Failed to re-initialize system tray: {}", e);
             }
         }
@@ -164,10 +170,12 @@ async fn main() {
     handlers::settings::setup(&app, app_handle.clone(), app_state.clone());
     handlers::update::setup(&app, app_handle.clone(), app_state.clone());
     handlers::instance::setup(&app, app_handle.clone(), app_state.clone());
+    handlers::usb::setup(&app, app_handle.clone(), app_state.clone());
 
 
-    // Start WSL status monitoring
-    app::tasks::spawn_wsl_monitor(app_state.clone());
+    // Start monitoring
+    app::tasks::spawn_wsl_monitor(app_handle.clone(), app_state.clone());
+    app::tasks::spawn_usb_monitor(app_handle.clone());
 
     // Listen for distribution state changes and automatically update UI
     app::tasks::spawn_state_listener(app_handle.clone(), app_state.clone());

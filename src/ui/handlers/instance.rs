@@ -41,15 +41,6 @@ pub fn setup(app: &AppWindow, app_handle: slint::Weak<AppWindow>, _app_state: Ar
             fetch_latest_instance_data(ah_fetch, as_fetch).await;
         });
     });
-
-    // Initial fetch on startup
-    let ah_init = app_handle.clone();
-    let as_init = _app_state.clone();
-    tokio::spawn(async move {
-        // Delay slightly to not compete with initial UI load
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        fetch_latest_instance_data(ah_init, as_init).await;
-    });
 }
 
 pub async fn fetch_latest_instance_data(ah: slint::Weak<AppWindow>, as_ptr: Arc<Mutex<AppState>>) {

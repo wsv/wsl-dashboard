@@ -203,6 +203,7 @@ export component SettingsView inherits Rectangle {
     callback save-settings();
     callback select-distro-folder();
     callback select-logs-folder();
+    callback open-wsl-settings();
     VerticalLayout {
         padding: 0px;
         spacing: 0px;
@@ -217,7 +218,7 @@ export component SettingsView inherits Rectangle {
                 viewport-height: content-layout.preferred-height;
                 width: parent.width;
                 height: 100%;
-                interactive: !root.open-dropdown;
+                interactive: true;
                 content-layout := VerticalLayout {
                     padding-left: AppI18n.is-rtl ? 16px : 4px;
                     padding-right: AppI18n.is-rtl ? 4px : 16px;
@@ -439,32 +440,24 @@ export component SettingsView inherits Rectangle {
 
                     HorizontalLayout {
                         spacing: 6px;
-                        
-                        // LTR: Input left, Button right
-                        if (!AppI18n.is-rtl): CustomLineEdit {
+                        if (AppI18n.is-rtl): CustomButton {
+                            text: root.strings.select_folder;
+                            height: 32px;
+                            width: self.preferred-width;
+                            clicked => {
+                                root.select-logs-folder();
+                            }
+                        }
+                        CustomLineEdit {
                             text: root.logs_location;
                             enabled: false;
                             horizontal-stretch: 1;
                         }
 
-                        // RTL: Button left, Input right
-                        if (AppI18n.is-rtl): CustomButton {
-                            text: root.strings.select_folder;
-                            height: 32px;
-                            width: self.preferred-width; // Ensure button has natural width
-                            clicked => {
-                                root.select-logs-folder();
-                            }
-                        }
-                        if (AppI18n.is-rtl): CustomLineEdit {
-                            text: root.logs_location;
-                            enabled: false;
-                            horizontal-stretch: 1;
-                        }
                         if (!AppI18n.is-rtl): CustomButton {
                             text: root.strings.select_folder;
                             height: 32px;
-                            width: self.preferred-width; // Ensure button has natural width
+                            width: self.preferred-width;
                             clicked => {
                                 root.select-logs-folder();
                             }
@@ -487,32 +480,24 @@ export component SettingsView inherits Rectangle {
 
                     HorizontalLayout {
                         spacing: 8px;
-                        
-                        // LTR: Input left, Button right
-                        if (!AppI18n.is-rtl): CustomLineEdit {
+                        if (AppI18n.is-rtl): CustomButton {
+                            text: root.strings.select_folder;
+                            height: 32px;
+                            width: self.preferred-width;
+                            clicked => {
+                                root.select-distro-folder();
+                            }
+                        }
+                        CustomLineEdit {
                             text: root.distro_location;
                             enabled: false;
                             horizontal-stretch: 1;
                         }
 
-                        // RTL: Button left, Input right
-                        if (AppI18n.is-rtl): CustomButton {
-                            text: root.strings.select_folder;
-                            height: 32px;
-                            width: self.preferred-width; // Ensure button has natural width
-                            clicked => {
-                                root.select-distro-folder();
-                            }
-                        }
-                        if (AppI18n.is-rtl): CustomLineEdit {
-                            text: root.distro_location;
-                            enabled: false;
-                            horizontal-stretch: 1;
-                        }
                         if (!AppI18n.is-rtl): CustomButton {
                             text: root.strings.select_folder;
                             height: 32px;
-                            width: self.preferred-width; // Ensure button has natural width
+                            width: self.preferred-width;
                             clicked => {
                                 root.select-distro-folder();
                             }
@@ -564,15 +549,40 @@ export component SettingsView inherits Rectangle {
         HorizontalLayout {
             padding-top: 4px;
             padding-bottom: 4px;
-            padding-right: AppI18n.is-rtl ? 0 : 16px;
-            padding-left: AppI18n.is-rtl ? 16px : 0;
-            alignment: AppI18n.is-rtl ? start : end;
-            CustomButton {
+            padding-right: AppI18n.is-rtl ? 4px : 16px;
+            padding-left: AppI18n.is-rtl ? 16px : 4px;
+            if (AppI18n.is-rtl): CustomButton {
                 text: root.strings.save;
                 primary: true;
                 height: 32px;
                 clicked => {
                     root.save_settings();
+                }
+            }
+            if (!AppI18n.is-rtl): CustomButton {
+                text: root.strings.wsl_settings;
+                height: 32px;
+                clicked => {
+                    root.open-wsl-settings();
+                }
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            if (!AppI18n.is-rtl): CustomButton {
+                text: root.strings.save;
+                primary: true;
+                height: 32px;
+                clicked => {
+                    root.save_settings();
+                }
+            }
+            if (AppI18n.is-rtl): CustomButton {
+                text: root.strings.wsl_settings;
+                height: 32px;
+                clicked => {
+                    root.open-wsl-settings();
                 }
             }
         }

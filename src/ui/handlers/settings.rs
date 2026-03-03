@@ -172,4 +172,81 @@ pub fn setup(app: &AppWindow, app_handle: slint::Weak<AppWindow>, app_state: Arc
             }
         });
     });
+
+    let ah = app_handle.clone();
+    let as_ptr = app_state.clone();
+    app.on_open_wsl_settings(move || {
+        let ah = ah.clone();
+        let as_ptr = as_ptr.clone();
+        let _ = slint::spawn_local(async move {
+            let state = as_ptr.lock().await;
+            let executor = state.wsl_dashboard.executor().clone();
+            drop(state);
+
+            let show_upgrade_prompt = |app: slint::Weak<AppWindow>| {
+                if let Some(app) = app.upgrade() {
+                    app.set_current_message(i18n::t("settings.wsl2_required").into());
+                    app.set_current_message_link(i18n::t("settings.update_wsl").into());
+                    app.set_current_message_url("https://github.com/microsoft/WSL/releases/latest".into());
+                    app.set_show_message_dialog(true);
+                }
+            };
+
+            // 1. Check if it's the Store version (which supports WSL Settings)
+            // If wsl --version fails, it's likely the Inbox version or an old version
+            let version_check = executor.execute_command(&["--version"]).await;
+            if !version_check.success {
+                show_upgrade_prompt(ah);
+                return;
+            }
+
+            // 2. Discover wslsettings.exe path
+            let rel_path = "Program Files\\WSL\\wslsettings\\wslsettings.exe";
+            let mut exe_path = std::path::PathBuf::from(format!("C:\\{}", rel_path));
+            let mut found = exe_path.exists();
+
+            if !found {
+                // Try SystemDrive if not C:
+                if let Ok(system_drive) = std::env::var("SystemDrive") {
+                    if system_drive.to_uppercase() != "C:" {
+                        let alt_path = std::path::PathBuf::from(format!("{}\\{}", system_drive, rel_path));
+                        if alt_path.exists() {
+                            exe_path = alt_path;
+                            found = true;
+                        }
+                    }
+                }
+            }
+
+            if !found {
+                // Exhaustive search on other drive letters
+                for drive in b'C'..=b'Z' {
+                    let drive_str = format!("{}:", drive as char);
+                    let alt_path = std::path::PathBuf::from(format!("{}\\{}", drive_str, rel_path));
+                    if alt_path.exists() {
+                        exe_path = alt_path;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if found {
+                let mut cmd = std::process::Command::new(exe_path);
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    const CREATE_NO_WINDOW: u32 = 0x08000000;
+                    cmd.creation_flags(CREATE_NO_WINDOW);
+                }
+                let _ = cmd.spawn().map_err(|e| {
+                    error!("Failed to launch WSL settings: {}", e);
+                });
+            } else {
+                // If wslsettings.exe is not found even on multiple drives,
+                // it's almost certainly because the WSL version is < 2.3.0
+                show_upgrade_prompt(ah);
+            }
+        });
+    });
 }

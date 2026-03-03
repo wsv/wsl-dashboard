@@ -29,6 +29,23 @@ export struct RootFSHelpItem {
     url: string,
 }
 
+export struct UsbDevice {
+    bus_id: string,
+    description: string,
+    instance_id: string,
+    sn: string,
+    is_real_sn: bool,
+    persisted_id: string,
+    client_ip: string,
+    stub_id: string,
+    is_forced: bool,
+    vid_pid: string,
+    status: string,      // "NotShared", "Shared", "Attached"
+    is_attached: bool,
+    auto_attach: bool,
+    attached_distro: string,
+}
+
 export struct SettingsStrings {
     language: string,
     auto_update: string,
@@ -42,6 +59,7 @@ export struct SettingsStrings {
     minimize_tray: string,
     close_to_tray: string,
     save: string,
+    wsl_settings: string,
 }
 
 export struct AboutStrings {

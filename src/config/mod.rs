@@ -257,4 +257,39 @@ impl ConfigManager {
         Self::save_instances_to_disk(&path, &container)?;
         Ok(())
     }
+
+    // --- USB Config Management ---
+
+    pub fn get_usb_config(&self) -> &UsbConfig {
+        &self.config.usb
+    }
+
+    #[allow(dead_code)]
+    pub fn update_usb_config(&mut self, usb: UsbConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.config.usb = usb;
+        Self::save_config(&self.config_path, &mut self.config)?;
+        info!("✅ USB configuration saved successfully");
+        Ok(())
+    }
+
+    pub fn toggle_usb_auto_attach(&mut self, bus_id: &str, vid_pid: &str, distro: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let list = &mut self.config.usb.auto_attach_list;
+        let index = list.iter().position(|d| d.vid_pid == vid_pid || d.bus_id == bus_id);
+        
+        let is_enabled = if let Some(i) = index {
+            list.remove(i);
+            false
+        } else {
+            list.push(UsbAutoAttachDevice {
+                bus_id: bus_id.to_string(),
+                vid_pid: vid_pid.to_string(),
+                distribution: distro.to_string(),
+            });
+            true
+        };
+        
+        Self::save_config(&self.config_path, &mut self.config)?;
+        info!("USB auto-attach for {} is now {}", bus_id, if is_enabled { "enabled" } else { "disabled" });
+        Ok(is_enabled)
+    }
 }

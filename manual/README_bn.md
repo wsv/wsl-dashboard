@@ -107,6 +107,16 @@ I18N :  [English](../README.md) | [简体中文](./README_zh_CN.md) | [繁體中
   <img src="../assets/screenshot/home-dark.png" width="48%" />
 </p>
 
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
+</p>
+
 ### ইনস্ট্যান্স যোগ করুন এবং সেটিংস
 <p align="center">
   <img src="../assets/screenshot/add.png" width="48%" />

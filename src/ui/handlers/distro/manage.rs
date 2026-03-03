@@ -38,13 +38,15 @@ pub fn setup(app: &AppWindow, app_handle: slint::Weak<AppWindow>, app_state: Arc
         info!("Operation: Open terminal - {}", name);
         let ah = ah.clone();
         let as_ptr = as_ptr.clone();
-        let _ = slint::spawn_local(async move {
+        tokio::spawn(async move {
             {
-                let app_state = as_ptr.lock().await;
-                let executor = app_state.wsl_dashboard.executor().clone();
-                let working_dir = app_state.config_manager.get_instance_config(&name).terminal_dir;
-                drop(app_state);
-                let _ = executor.open_distro_terminal(&name, &working_dir).await;
+                let lock_timeout = std::time::Duration::from_millis(500);
+                if let Ok(app_state) = tokio::time::timeout(lock_timeout, as_ptr.lock()).await {
+                    let executor = app_state.wsl_dashboard.executor().clone();
+                    let working_dir = app_state.config_manager.get_instance_config(&name).terminal_dir;
+                    drop(app_state);
+                    let _ = executor.open_distro_terminal(&name, &working_dir).await;
+                }
             }
             // Refresh status immediately after opening terminal
             refresh_distros_ui(ah, as_ptr).await;
@@ -58,12 +60,14 @@ pub fn setup(app: &AppWindow, app_handle: slint::Weak<AppWindow>, app_state: Arc
         info!("Operation: Open folder - {}", name);
         let ah = ah.clone();
         let as_ptr = as_ptr.clone();
-        let _ = slint::spawn_local(async move {
+        tokio::spawn(async move {
             {
-                let app_state = as_ptr.lock().await;
-                let executor = app_state.wsl_dashboard.executor().clone();
-                drop(app_state);
-                let _ = executor.open_distro_folder(&name).await;
+                let lock_timeout = std::time::Duration::from_millis(500);
+                if let Ok(app_state) = tokio::time::timeout(lock_timeout, as_ptr.lock()).await {
+                    let executor = app_state.wsl_dashboard.executor().clone();
+                    drop(app_state);
+                    let _ = executor.open_distro_folder(&name).await;
+                }
             }
             refresh_distros_ui(ah, as_ptr).await;
         });
@@ -259,5 +263,63 @@ pub fn setup(app: &AppWindow, app_handle: slint::Weak<AppWindow>, app_state: Arc
         let _ = slint::spawn_local(async move {
             super::settings_logic::perform_save_settings(ah, as_ptr, name, terminal_dir, vscode_dir, is_default, autostart, startup_script).await;
         });
+    });
+
+    // WSL Configuration
+    let ah = app_handle.clone();
+    let as_ptr = app_state.clone();
+    app.on_configs_clicked(move |name| {
+        let ah = ah.clone();
+        let as_ptr = as_ptr.clone();
+        let name = name.to_string();
+        tokio::spawn(async move {
+            super::config_logic::handle_configs_clicked(ah, as_ptr, name).await;
+        });
+    });
+
+    let ah = app_handle.clone();
+    app.on_request_wsl_config_preview(move || {
+        let ah = ah.clone();
+        let _ = slint::spawn_local(async move {
+            super::config_logic::handle_request_preview(ah).await;
+        });
+    });
+
+    let ah = app_handle.clone();
+    let as_ptr = app_state.clone();
+    app.on_save_wsl_config(move || {
+        let ah = ah.clone();
+        let as_ptr = as_ptr.clone();
+        tokio::spawn(async move {
+            super::config_logic::handle_save_wsl_config(ah, as_ptr, false).await;
+        });
+    });
+
+    let ah = app_handle.clone();
+    let as_ptr = app_state.clone();
+    app.on_save_wsl_config_and_restart(move || {
+        let ah = ah.clone();
+        let as_ptr = as_ptr.clone();
+        tokio::spawn(async move {
+            super::config_logic::handle_save_wsl_config(ah, as_ptr, true).await;
+        });
+    });
+
+    let ah_home = app_handle.clone();
+    let as_ptr = app_state.clone();
+    app.on_home_clicked(move || {
+        let as_ptr = as_ptr.clone();
+        if let Some(app) = ah_home.upgrade() {
+            let is_visible = app.get_is_window_visible();
+            tokio::spawn(async move {
+                if crate::ui::data::should_refresh_wsl("manual trigger", is_visible) {
+                    let dashboard = {
+                        let state = as_ptr.lock().await;
+                        state.wsl_dashboard.clone()
+                    };
+                    let _ = dashboard.refresh_distros().await;
+                }
+            });
+        }
     });
 }

@@ -28,8 +28,8 @@ I18N :  [English](../README.md) | [简体中文](./README_zh_CN.md) | [繁體中
 - [🎬 Demonstasjon](#-demonstasjon)
 - [💻 Systemkrav](#-systemkrav)
 - [📦 Installasjonsguide](#-installasjonsguide)
-- [🛠️ Teknologistakk og ytelse](#️-teknologistakk-og-ytelse)
-- [📄 Lisens](#-lisens)
+  - [🛠️ Teknologistakk og ytelse](#️-teknologistakk-og-ytelse)
+  - [📄 Lisens](#-lisens)
 
 ---
 
@@ -105,6 +105,16 @@ Loggfiler skrives til den konfigurerte loggmappen og kan legges ved når du rapp
 <p align="center">
   <img src="../assets/screenshot/home.png" width="48%" />
   <img src="../assets/screenshot/home-dark.png" width="48%" />
+</p>
+
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
 </p>
 
 ### Legg til instans og innstillinger

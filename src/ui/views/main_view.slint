@@ -21,6 +21,7 @@ component DistroList inherits VerticalLayout {
     callback information_clicked(string);
     callback delete_clicked(string);
     callback settings_clicked(string);
+    callback configs_clicked(string);
     padding-top: 0px;
     padding-bottom: 0px;
     padding-left: AppI18n.is-rtl ? 16px : 4px;
@@ -77,6 +78,9 @@ component DistroList inherits VerticalLayout {
         settings_clicked => {
             root.settings_clicked(d.name);
         }
+        configs_clicked => {
+            root.configs_clicked(d.name);
+        }
     }
 }
 
@@ -96,10 +100,12 @@ export component MainView inherits VerticalLayout {
     callback information_clicked(string);
     callback delete_clicked(string);
     callback settings_clicked(string);
+    callback configs_clicked(string);
     in-out property <string> distro_to_delete;
     in-out property <bool> show_delete_confirmation;
     private property <string> expanded_distro: "";
     vertical-stretch: 1;
+    padding-top: 8px;
     spacing: 12px;
     Rectangle {
         vertical-stretch: 1;
@@ -151,6 +157,9 @@ export component MainView inherits VerticalLayout {
                 }
                 settings_clicked(n) => {
                     root.settings_clicked(n);
+                }
+                configs_clicked(n) => {
+                    root.configs_clicked(n);
                 }
             }
         }

@@ -1,0 +1,348 @@
+import { ActionIcon } from "common.slint";
+import { Theme, UsbDevice, AppI18n, LayoutConstants } from "../theme.slint";
+
+component UsbDeviceInfo inherits VerticalLayout {
+    in property <UsbDevice> device;
+    in property <bool> is-rtl;
+    spacing: 0px;
+    alignment: center;
+    horizontal-stretch: 1;
+    Text {
+        text: device.description;
+        font-size: 14px;
+        font-weight: 400;
+        font-family: Theme.default_font;
+        color: Theme.text_primary;
+        overflow: elide;
+        horizontal-alignment: is-rtl ? right : left;
+    }
+
+    Text {
+        text: (is-rtl ? device.bus_id + " BusId" : "BusId " + device.bus_id);
+        font-size: 11px;
+        font-family: Theme.default_font;
+        color: Theme.text_secondary;
+        horizontal-alignment: is-rtl ? right : left;
+    }
+}
+
+// USB Badge: Icon + Auto Tag
+component UsbBadge inherits VerticalLayout {
+    in property <UsbDevice> device;
+    width: 32px; // Match DistroBadge
+    alignment: center;
+    Rectangle {
+        width: 32px;
+        height: 32px;
+        if (device.auto_attach): Rectangle {
+            y: 0px;
+            x: (parent.width - self.width) / 2;
+            width: 30px; // Slightly smaller for 32px badge
+            height: 14px;
+            background: Theme.dark_mode ? #1a2a3a : #e6f0fa;
+            border-radius: 3px;
+            Text {
+                text: "Auto";
+                font-size: 9px;
+                font-weight: 600;
+                font-family: Theme.default_font;
+                color: Theme.accent;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        Text {
+            y: (device.auto_attach) ? 14px : 7px;
+            text: "\u{E88E}";
+            font-family: Theme.icon_font;
+            font-size: 20px;
+            color: device.status == "Attached" ? Theme.accent : device.status == "Shared" ? Theme.text_primary : Theme.text_secondary;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+// Status badge
+component StatusBadge inherits Rectangle {
+    in property <string> status;
+    width: status_text.preferred-width + 16px;
+    height: 22px;
+    border-radius: 4px;
+    background: status == "Attached" ? (Theme.dark_mode ? #1a3a1a : #e6f7e6) : status == "Shared" ? (Theme.dark_mode ? #1a2a3a : #e6f0fa) : (Theme.dark_mode ? #2a2a2a : #f0f0f0);
+    status_text := Text {
+        width: 100%;
+        height: 100%;
+        text: status == "Attached" ? AppI18n.t("usb.status_attached", [AppI18n.version]) : status == "Shared" ? AppI18n.t("usb.status_shared", [AppI18n.version]) : AppI18n.t("usb.status_not_shared", [AppI18n.version]);
+        font-size: 11px * LayoutConstants.font-scale;
+        font-family: Theme.default_font;
+        color: status == "Attached" ? (Theme.dark_mode ? #66cc66 : #2d8a2d) : status == "Shared" ? Theme.accent : Theme.text_secondary;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// USB Status and Expand group
+component UsbStatusGroup inherits VerticalLayout {
+    in property <string> status;
+    in property <bool> expanded;
+    in property <bool> is-rtl;
+    callback toggle_expand();
+    alignment: center;
+    HorizontalLayout {
+        spacing: 12px;
+        if (is-rtl): VerticalLayout {
+            alignment: center;
+            ActionIcon {
+                icon: expanded ? "\u{E70E}" : "\u{E70D}";
+                is_font_icon: true;
+                clicked => {
+                    root.toggle_expand();
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            StatusBadge {
+                status: root.status;
+            }
+        }
+
+        if (!is-rtl): VerticalLayout {
+            alignment: center;
+            ActionIcon {
+                icon: expanded ? "\u{E70E}" : "\u{E70D}";
+                is_font_icon: true;
+                clicked => {
+                    root.toggle_expand();
+                }
+            }
+        }
+    }
+}
+
+export component UsbDeviceCard inherits Rectangle {
+    in property <UsbDevice> device;
+    in-out property <bool> expanded: false;
+    callback expand_clicked();
+    callback bind_clicked(string);
+    callback unbind_clicked(string);
+    callback attach_clicked(string);
+    callback detach_clicked(string);
+    callback toggle_auto_attach(string);
+    callback copy_info_clicked(UsbDevice);
+    height: expanded ? 96px : 48px;
+    background: Theme.card_bg;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.border_color;
+    animate height {
+        duration: 200ms;
+        easing: ease-out-quad;
+    }
+    VerticalLayout {
+        padding: 0px;
+        
+        // Main row: Physical spring layout exactly like DistroCard
+        Rectangle {
+            height: 48px;
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 12px;
+                spacing: 0px;
+
+                // --- RTL branch: Icons on left, text+badge on right ---
+                if (AppI18n.is-rtl): UsbStatusGroup {
+                    status: device.status;
+                    expanded: root.expanded;
+                    is-rtl: true;
+                    toggle_expand => {
+                        root.expand_clicked();
+                    }
+                }
+                if (AppI18n.is-rtl): Rectangle {
+                    horizontal-stretch: 1;
+                } // Middle spring
+                if (AppI18n.is-rtl): HorizontalLayout {
+                    spacing: 8px;
+                    horizontal-stretch: 1;
+                    UsbDeviceInfo {
+                        device: root.device;
+                        is-rtl: true;
+                    }
+
+                    UsbBadge {
+                        device: root.device;
+                    }
+                }
+
+                // --- LTR branch: Badge+text on left, icons on right ---
+                if (!AppI18n.is-rtl): HorizontalLayout {
+                    spacing: 8px;
+                    horizontal-stretch: 1;
+                    UsbBadge {
+                        device: root.device;
+                    }
+
+                    UsbDeviceInfo {
+                        device: root.device;
+                        is-rtl: false;
+                    }
+                }
+                if (!AppI18n.is-rtl): Rectangle {
+                    horizontal-stretch: 1;
+                } // Middle spring
+                if (!AppI18n.is-rtl): UsbStatusGroup {
+                    status: device.status;
+                    expanded: root.expanded;
+                    is-rtl: false;
+                    toggle_expand => {
+                        root.expand_clicked();
+                    }
+                }
+            }
+        }
+
+        // Expansion area
+        if (expanded): Rectangle {
+            z: 1;
+            height: 48px;
+            Rectangle {
+                y: -1px;
+                width: 100%;
+                height: parent.height + 1px;
+                background: Theme.dark_mode ? #252526 : #F9FAFB;
+                border-bottom-left-radius: 6px;
+                border-bottom-right-radius: 6px;
+                border-width: 1px;
+                border-color: Theme.border_color;
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    
+                    // RTL: Align to visual left
+                    if (AppI18n.is-rtl): VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            if (device.status == "NotShared"): ActionIcon {
+                                icon: "\u{E71B}";
+                                is_font_icon: true;
+                                show_shield: true;
+                                tooltip: AppI18n.t("usb.bind", [AppI18n.version]);
+                                clicked => {
+                                    root.bind_clicked(device.bus_id);
+                                }
+                            }
+                            if (device.status != "NotShared"): ActionIcon {
+                                icon: "\u{E71A}";
+                                is_font_icon: true;
+                                show_shield: true;
+                                tooltip: AppI18n.t("usb.unbind", [AppI18n.version]);
+                                clicked => {
+                                    root.unbind_clicked(device.bus_id);
+                                }
+                            }
+                            if (!device.is_attached): ActionIcon {
+                                icon: "\u{ECC8}";
+                                is_font_icon: true;
+                                show_shield: true;
+                                tooltip: AppI18n.t("usb.attach", [AppI18n.version]);
+                                clicked => {
+                                    root.attach_clicked(device.bus_id);
+                                }
+                            }
+                            if (device.is_attached): ActionIcon {
+                                icon: "\u{ECC9}";
+                                is_font_icon: true;
+                                tooltip: AppI18n.t("usb.detach", [AppI18n.version]);
+                                clicked => {
+                                    root.detach_clicked(device.bus_id);
+                                }
+                            }
+                            if (device.status != "NotShared"): ActionIcon {
+                                icon: "\u{E945}";
+                                is_font_icon: true;
+                                icon_color: device.auto_attach ? Theme.accent : Theme.text_primary;
+                                tooltip: AppI18n.t("usb.auto_attach", [AppI18n.version]);
+                                clicked => {
+                                    root.toggle_auto_attach(device.bus_id);
+                                }
+                            }
+                            ActionIcon {
+                                icon: "\u{E8C8}";
+                                is_font_icon: true;
+                                tooltip: AppI18n.t("usb.copy_info", [AppI18n.version]);
+                                clicked => {
+                                    root.copy_info_clicked(device);
+                                }
+                            }
+                        }
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    // LTR: Align to visual right
+                    if (!AppI18n.is-rtl): VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            if (device.status == "NotShared"): ActionIcon {
+                                icon: "\u{E71B}";
+                                is_font_icon: true;
+                                show_shield: true;
+                                tooltip: AppI18n.t("usb.bind", [AppI18n.version]);
+                                clicked => {
+                                    root.bind_clicked(device.bus_id);
+                                }
+                            }
+                            if (device.status != "NotShared"): ActionIcon {
+                                icon: "\u{E71A}";
+                                is_font_icon: true;
+                                show_shield: true;
+                                tooltip: AppI18n.t("usb.unbind", [AppI18n.version]);
+                                clicked => {
+                                    root.unbind_clicked(device.bus_id);
+                                }
+                            }
+                            if (!device.is_attached): ActionIcon {
+                                icon: "\u{ECC8}";
+                                is_font_icon: true;
+                                show_shield: true;
+                                tooltip: AppI18n.t("usb.attach", [AppI18n.version]);
+                                clicked => {
+                                    root.attach_clicked(device.bus_id);
+                                }
+                            }
+                            if (device.is_attached): ActionIcon {
+                                icon: "\u{ECC9}";
+                                is_font_icon: true;
+                                tooltip: AppI18n.t("usb.detach", [AppI18n.version]);
+                                clicked => {
+                                    root.detach_clicked(device.bus_id);
+                                }
+                            }
+                            if (device.status != "NotShared"): ActionIcon {
+                                icon: "\u{E945}";
+                                is_font_icon: true;
+                                icon_color: device.auto_attach ? Theme.accent : Theme.text_primary;
+                                tooltip: AppI18n.t("usb.auto_attach", [AppI18n.version]);
+                                clicked => {
+                                    root.toggle_auto_attach(device.bus_id);
+                                }
+                            }
+                            ActionIcon {
+                                icon: "\u{E8C8}";
+                                is_font_icon: true;
+                                tooltip: AppI18n.t("usb.copy_info", [AppI18n.version]);
+                                clicked => {
+                                    root.copy_info_clicked(device);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

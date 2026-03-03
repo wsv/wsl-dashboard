@@ -36,6 +36,9 @@ pub fn get_wsl_distros_from_reg() -> Vec<WslRegInfo> {
             
             index += 1;
         }
+        
+        use windows::Win32::System::Registry::RegCloseKey;
+        let _ = RegCloseKey(hkey);
     }
     distros
 }
@@ -54,6 +57,9 @@ fn get_distro_details_by_guid(parent_hkey: HKEY, guid: &str) -> Option<WslRegInf
         let pfn = read_reg_string(sub_hkey, "PackageFamilyName").unwrap_or_default();
         let version = read_reg_dword(sub_hkey, "Version").unwrap_or(1);
         
+        use windows::Win32::System::Registry::RegCloseKey;
+        let _ = RegCloseKey(sub_hkey);
+
         if name.is_empty() {
             return None;
         }
@@ -113,7 +119,10 @@ pub fn get_system_locale() -> String {
     let mut hkey = HKEY::default();
     unsafe {
         if RegOpenKeyExW(HKEY_CURRENT_USER, PCWSTR(encode_wide(subkey).as_ptr()), 0, KEY_READ, &mut hkey).is_ok() {
-            if let Some(locale) = read_reg_string(hkey, "LocaleName") {
+            let res = read_reg_string(hkey, "LocaleName");
+            use windows::Win32::System::Registry::RegCloseKey;
+            let _ = RegCloseKey(hkey);
+            if let Some(locale) = res {
                 return locale;
             }
         }
@@ -146,9 +155,13 @@ pub fn write_reg_string(root: HKEY, subkey: &str, value_name: &str, value: &str)
             .map_err(|e: windows::core::Error| e.to_string())?;
             
         let data = std::slice::from_raw_parts(value_wide.as_ptr() as *const u8, value_wide.len() * 2);
-        RegSetValueExW(hkey, PCWSTR(value_name_wide.as_ptr()), 0, REG_SZ, Some(data))
+        let res = RegSetValueExW(hkey, PCWSTR(value_name_wide.as_ptr()), 0, REG_SZ, Some(data))
             .ok()
-            .map_err(|e: windows::core::Error| e.to_string())?;
+            .map_err(|e: windows::core::Error| e.to_string());
+            
+        use windows::Win32::System::Registry::RegCloseKey;
+        let _ = RegCloseKey(hkey);
+        res?;
     }
     Ok(())
 }
@@ -164,11 +177,29 @@ pub fn delete_reg_value(root: HKEY, subkey: &str, value_name: &str) -> Result<()
             .ok()
             .map_err(|e: windows::core::Error| e.to_string())?;
             
-        RegDeleteValueW(hkey, PCWSTR(value_name_wide.as_ptr()))
+        let res = RegDeleteValueW(hkey, PCWSTR(value_name_wide.as_ptr()))
             .ok()
-            .map_err(|e: windows::core::Error| e.to_string())?;
+            .map_err(|e: windows::core::Error| e.to_string());
+            
+        use windows::Win32::System::Registry::RegCloseKey;
+        let _ = RegCloseKey(hkey);
+        res?;
     }
     Ok(())
+}
+
+pub fn read_reg_string_ext(root: HKEY, subkey: &str, value_name: &str) -> Option<String> {
+    let subkey_wide = encode_wide(subkey);
+    let mut hkey = HKEY::default();
+    unsafe {
+        if RegOpenKeyExW(root, PCWSTR(subkey_wide.as_ptr()), 0, KEY_READ, &mut hkey).is_err() {
+            return None;
+        }
+        let res = read_reg_string(hkey, value_name);
+        use windows::Win32::System::Registry::RegCloseKey;
+        let _ = RegCloseKey(hkey);
+        res
+    }
 }
 
 fn encode_wide(s: &str) -> Vec<u16> {

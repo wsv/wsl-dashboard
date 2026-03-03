@@ -26,10 +26,10 @@ impl WslCommandExecutor {
     // Create a new WSL command executor instance
     pub fn new() -> Self {
         Self {
-            // Limit to 8 concurrent operations. More stable than 16 under heavy load.
-            semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(8)),
-            // Limit to 2 concurrent background heavy operations (like powershell cleanups)
-            background_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+            // Limit to 16 concurrent operations. Higher than before to buffer hangs.
+            semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(16)),
+            // Limit to 4 concurrent background heavy operations
+            background_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
         }
     }
 
@@ -158,8 +158,8 @@ impl WslCommandExecutor {
         }
 
         // Acquire semaphore permit with its own timeout to avoid deadlock if slots are stuck
-        let permit_timeout = std::time::Duration::from_secs(15);
-        debug!("Acquiring WSL semaphore permit (Available: {}/8) for: {}", self.semaphore.available_permits(), command_str);
+        let permit_timeout = std::time::Duration::from_secs(20);
+        debug!("Acquiring WSL semaphore permit (Available: {}/16) for: {}", self.semaphore.available_permits(), command_str);
         let _permit = match tokio::time::timeout(permit_timeout, self.semaphore.acquire()).await {
             Ok(Ok(p)) => p,
             Ok(Err(_)) => {

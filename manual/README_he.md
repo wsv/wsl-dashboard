@@ -29,7 +29,7 @@ I18N :  [English](../README.md) | [简体中文](./README_zh_CN.md) | [繁體中
 - [💻 דרישות מערכת](#-דרישות-מערכת)
 - [📦 מדריך התקנה](#-מדריך-התקנה)
 - [🛠️ טכנולוגיה וביצועים](#️-טכנולוגיה-וביצועים)
-- [📄 רישיון](#-רישיון)
+  - [📄 רישיון](#-רישיון)
 
 ---
 
@@ -105,6 +105,16 @@ I18N :  [English](../README.md) | [简体中文](./README_zh_CN.md) | [繁體中
 <p align="center">
   <img src="../assets/screenshot/home.png" width="48%" />
   <img src="../assets/screenshot/home-dark.png" width="48%" />
+</p>
+
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
 </p>
 
 ### הוספת מופע והגדרות

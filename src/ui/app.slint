@@ -5,6 +5,7 @@ import {
     AppInfo,
     Information,
     RootFSHelpItem,
+    UsbDevice,
     AppI18n,
     SettingsStrings,
     AboutStrings,
@@ -14,12 +15,13 @@ import { Sidebar } from "components/sidebar.slint";
 import { ModalManager } from "components/modal_manager.slint";
 import { MainView } from "views/main_view.slint";
 import { AddInstanceView } from "views/add_view.slint";
+import { UsbView } from "views/usb_view.slint";
 import { SettingsView } from "views/settings_view.slint";
 import { AboutView } from "views/about_view.slint";
 import { TaskStatusToast } from "components/task_status_toast.slint";
 
 
-export { Theme, Distro, InstallableDistro, AppInfo, RootFSHelpItem, AppI18n }
+export { Theme, Distro, InstallableDistro, AppInfo, RootFSHelpItem, UsbDevice, AppI18n }
 
 export component AppWindow inherits Window {
     title: "WSL_DASHBOARD_WINDOW_UI";
@@ -116,6 +118,40 @@ export component AppWindow inherits Window {
     in-out property <string> settings_startup_script_error: "";
     in-out property <string> settings_default_error: "";
 
+    // WSL Config properties
+    in-out property <bool> show_wsl_config: false;
+    in-out property <string> wsl_config_distro_name: "";
+    in-out property <bool> wsl_config_automount_enabled: true;
+    in-out property <bool> wsl_config_automount_mount_fs_tab: true;
+    in-out property <string> wsl_config_automount_root: "/mnt/";
+    in-out property <string> wsl_config_automount_options: "";
+    in-out property <bool> wsl_config_network_generate_hosts: true;
+    in-out property <bool> wsl_config_network_generate_resolv_conf: true;
+    in-out property <string> wsl_config_network_hostname: "";
+    in-out property <bool> wsl_config_interop_enabled: true;
+    in-out property <bool> wsl_config_interop_append_windows_path: true;
+    in-out property <string> wsl_config_user_default: "";
+    in-out property <bool> wsl_config_boot_systemd: false;
+    in-out property <string> wsl_config_boot_command: "";
+    in-out property <bool> wsl_config_boot_protect_binfmt: true;
+    in-out property <bool> wsl_config_gpu_enabled: true;
+    in-out property <bool> wsl_config_time_use_windows_timezone: true;
+    in property <bool> wsl_config_boot_supported: true;
+    in property <bool> wsl_config_gpu_supported: true;
+    in property <bool> wsl_config_time_supported: true;
+    in property <bool> wsl_config_version_detection_failed: false;
+    in property <string> wsl_config_version_string: "";
+    in property <string> wsl_config_user_error: "";
+    in property <string> wsl_config_command_error: "";
+    in property <string> wsl_config_preview_content: "";
+
+    // --- USB Properties ---
+    in property <[UsbDevice]> usb_devices: [];
+    in property <bool> usb_loading: false;
+    in property <string> usb_error: "";
+    in property <string> usbipd_version: "";
+    in property <bool> is_usbipd_outdated: false;
+
     // --- Callbacks ---
     callback select_tab(int);
     callback start_distro(string);
@@ -165,11 +201,25 @@ export component AppWindow inherits Window {
     callback select_distro_folder();
     callback select_logs_folder();
     callback toggle_theme();
+    callback open_wsl_settings();
     callback clone_name_changed(string);
     callback distro_selected(string);
     callback show_rootfs_help_clicked();
     callback close_vscode_startup();
     callback close_task_status();
+    callback configs_clicked(string);
+    callback save_wsl_config();
+    callback save_wsl_config_and_restart();
+    callback request_wsl_config_preview();
+    callback home_clicked();
+    // USB callbacks
+    callback refresh_usb(bool);
+    callback usb_bind(string);
+    callback usb_unbind(string);
+    callback usb_attach(string);
+    callback usb_detach(string);
+    callback usb_toggle_auto_attach(string);
+    callback usb_copy_info(UsbDevice);
 
     // Dynamic Font Selection to optimize memory usage
     // Helper function to map language to font (No recursion here)
@@ -250,10 +300,14 @@ export component AppWindow inherits Window {
                     selected_tab: root.selected_tab;
                     home_text: AppI18n.t("sidebar.home", [AppI18n.version]);
                     add_text: AppI18n.t("sidebar.add", [AppI18n.version]);
+                    usb_text: AppI18n.t("usb.title", [AppI18n.version]);
                     settings_text: AppI18n.t("sidebar.settings", [AppI18n.version]);
                     about_text: AppI18n.t("sidebar.about", [AppI18n.version]);
                     tab_selected(idx) => {
                         root.select_tab(idx);
+                    }
+                    home_clicked => {
+                        root.home_clicked();
                     }
                     toggle_collapsed => {
                         root.save_sidebar_state();
@@ -270,6 +324,7 @@ export component AppWindow inherits Window {
                     clip: true;
                     VerticalLayout {
                         padding: 16px;
+                        padding-top: 8px;
                         padding-right: AppI18n.is-rtl ? 16px : 6px;
                         padding-left: AppI18n.is-rtl ? 6px : 16px;
                         Rectangle {
@@ -317,6 +372,9 @@ export component AppWindow inherits Window {
                                 }
                                 settings_clicked(n) => {
                                     root.settings_clicked(n);
+                                }
+                                configs_clicked(n) => {
+                                    root.configs_clicked(n);
                                 }
                                 delete_clicked(n) => {
                                     root.delete_clicked(n);
@@ -367,6 +425,42 @@ export component AppWindow inherits Window {
                                 }
                             }
 
+                            UsbView {
+                                visible: true;
+                                opacity: selected_tab == 2 ? 1 : 0;
+                                z: 7;
+                                x: selected_tab == 2 ? 0px : 10000px;
+                                devices: root.usb_devices;
+                                usb_loading: root.usb_loading;
+                                usb_error: root.usb_error;
+                                usbipd_version: root.usbipd_version;
+                                is_usbipd_outdated: root.is_usbipd_outdated;
+                                refresh_usb(m) => {
+                                    root.refresh_usb(m);
+                                }
+                                bind_clicked(id) => {
+                                    root.usb_bind(id);
+                                }
+                                unbind_clicked(id) => {
+                                    root.usb_unbind(id);
+                                }
+                                attach_clicked(id) => {
+                                    root.usb_attach(id);
+                                }
+                                detach_clicked(id) => {
+                                    root.usb_detach(id);
+                                }
+                                toggle_auto_attach(id) => {
+                                    root.usb_toggle_auto_attach(id);
+                                }
+                                copy_info_clicked(d) => {
+                                    root.usb_copy_info(d);
+                                }
+                                open_url(url) => {
+                                    root.open_url(url);
+                                }
+                            }
+
                             SettingsView {
                                 visible: true;
                                 opacity: selected_tab == 5 ? 1 : 0;
@@ -391,6 +485,9 @@ export component AppWindow inherits Window {
                                 }
                                 select-logs-folder => {
                                     root.select_logs_folder();
+                                }
+                                open-wsl-settings => {
+                                    root.open_wsl_settings();
                                 }
                             }
 
@@ -563,6 +660,43 @@ export component AppWindow inherits Window {
         }
         open_url(url) => {
             root.open_url(url);
+        }
+        show_wsl_config <=> root.show_wsl_config;
+        wsl_config_distro_name: root.wsl_config_distro_name;
+        wsl_config_automount_enabled <=> root.wsl_config_automount_enabled;
+        wsl_config_automount_mount_fs_tab <=> root.wsl_config_automount_mount_fs_tab;
+        wsl_config_automount_root <=> root.wsl_config_automount_root;
+        wsl_config_automount_options <=> root.wsl_config_automount_options;
+        wsl_config_network_generate_hosts <=> root.wsl_config_network_generate_hosts;
+        wsl_config_network_generate_resolv_conf <=> root.wsl_config_network_generate_resolv_conf;
+        wsl_config_network_hostname <=> root.wsl_config_network_hostname;
+        wsl_config_interop_enabled <=> root.wsl_config_interop_enabled;
+        wsl_config_interop_append_windows_path <=> root.wsl_config_interop_append_windows_path;
+        wsl_config_user_default <=> root.wsl_config_user_default;
+        wsl_config_boot_systemd <=> root.wsl_config_boot_systemd;
+        wsl_config_boot_command <=> root.wsl_config_boot_command;
+        wsl_config_boot_protect_binfmt <=> root.wsl_config_boot_protect_binfmt;
+        wsl_config_gpu_enabled <=> root.wsl_config_gpu_enabled;
+        wsl_config_time_use_windows_timezone <=> root.wsl_config_time_use_windows_timezone;
+        wsl_config_boot_supported: root.wsl_config_boot_supported;
+        wsl_config_gpu_supported: root.wsl_config_gpu_supported;
+        wsl_config_time_supported: root.wsl_config_time_supported;
+        wsl_config_version_detection_failed: root.wsl_config_version_detection_failed;
+        wsl_config_version_string: root.wsl_config_version_string;
+        wsl_config_user_error: root.wsl_config_user_error;
+        wsl_config_command_error: root.wsl_config_command_error;
+        wsl_config_preview_content: root.wsl_config_preview_content;
+        save_wsl_config => {
+            root.save_wsl_config();
+        }
+        save_wsl_config_and_restart => {
+            root.save_wsl_config_and_restart();
+        }
+        close_wsl_config => {
+            root.show_wsl_config = false;
+        }
+        request_wsl_config_preview => {
+            root.request_wsl_config_preview();
         }
     }
 }

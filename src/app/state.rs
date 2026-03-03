@@ -15,10 +15,11 @@ pub struct AppState {
     pub config_manager: ConfigManager,
     pub logging_system: Option<LoggingSystem>,
     pub vscode_extension: Option<VSCodeExtensionData>,
+    pub is_silent_mode: bool,
 }
 
 impl AppState {
-    pub fn new(config_manager: ConfigManager, logging_system: LoggingSystem) -> Self {
+    pub fn new(config_manager: ConfigManager, logging_system: LoggingSystem, is_silent_mode: bool) -> Self {
         // Load initial distros from cache for fast startup (warm start)
         let cached = config_manager.get_cached_distros();
         let initial_distros: Vec<WslDistro> = cached.into_iter().map(|c| {
@@ -36,6 +37,7 @@ impl AppState {
             config_manager,
             logging_system: Some(logging_system),
             vscode_extension: None,
+            is_silent_mode,
         }
     }
 }

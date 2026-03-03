@@ -6,11 +6,13 @@ export component Sidebar inherits Rectangle {
     in property <int> selected_tab: 0;
     in property <string> home_text: "";
     in property <string> add_text: "";
+    in property <string> usb_text: "";
     in property <string> settings_text: "";
     in property <string> about_text: "";
     
     // Callbacks to bubble up
     callback tab_selected(int);
+    callback home_clicked();
     callback toggle_collapsed();
     width: collapsed ? 54px : 200px;
     background: Theme.sidebar_bg;
@@ -66,6 +68,7 @@ export component Sidebar inherits Rectangle {
             collapsed: root.collapsed;
             clicked => {
                 root.tab_selected(0);
+                root.home_clicked();
             }
         }
 
@@ -76,6 +79,16 @@ export component Sidebar inherits Rectangle {
             collapsed: root.collapsed;
             clicked => {
                 root.tab_selected(1);
+            }
+        }
+
+        SidebarItem {
+            icon: "\u{E88E}";
+            text: root.usb_text;
+            selected: selected_tab == 2;
+            collapsed: root.collapsed;
+            clicked => {
+                root.tab_selected(2);
             }
         }
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::rc::Rc;
 use tokio::sync::Mutex;
-use tracing::{debug};
+use tracing::{debug, error};
 use slint::{ModelRc, VecModel, Model, ComponentHandle};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -9,6 +9,54 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::{AppState, AppWindow, Distro, InstallableDistro, SettingsStrings, wsl};
 use crate::i18n;
 use once_cell::sync::Lazy;
+use std::time::{Instant, Duration};
+
+static LAST_WSL_REFRESH: Lazy<std::sync::Mutex<Option<Instant>>> = Lazy::new(|| std::sync::Mutex::new(None));
+static LAST_USB_REFRESH: Lazy<std::sync::Mutex<Option<Instant>>> = Lazy::new(|| std::sync::Mutex::new(None));
+
+pub fn should_refresh_wsl(reason: &str, is_visible: bool) -> bool {
+    let mut last = LAST_WSL_REFRESH.lock().unwrap();
+    if let Some(t) = *last {
+        let elapsed = t.elapsed();
+        // Allow manual trigger to bypass the 4s debounce
+        if reason != "manual trigger" && elapsed < Duration::from_secs(4) {
+            debug!("WSL refresh skipped (reason: {}, elapsed: {:?})", reason, elapsed);
+            return false;
+        }
+    }
+
+    // Manual triggers represent explicit user intent and should bypass visibility checks
+    if !is_visible && reason != "manual trigger" {
+        debug!("WSL refresh skipped (reason: {}, window hidden in tray)", reason);
+        return false;
+    }
+
+    *last = Some(Instant::now());
+    debug!("WSL refresh triggered (reason: {})", reason);
+    true
+}
+
+pub fn should_refresh_usb(reason: &str, is_visible: bool) -> bool {
+    let mut last = LAST_USB_REFRESH.lock().unwrap();
+    if let Some(t) = *last {
+        let elapsed = t.elapsed();
+        // Allow manual trigger to bypass the 4s debounce
+        if reason != "manual trigger" && elapsed < Duration::from_secs(4) {
+            debug!("USB refresh skipped (reason: {}, elapsed: {:?})", reason, elapsed);
+            return false;
+        }
+    }
+
+    // Manual triggers represent explicit user intent and should bypass visibility checks
+    if !is_visible && reason != "manual trigger" {
+        debug!("USB refresh skipped (reason: {}, window hidden in tray)", reason);
+        return false;
+    }
+
+    *last = Some(Instant::now());
+    debug!("USB refresh triggered (reason: {})", reason);
+    true
+}
 
 pub fn refresh_localized_strings(app: &AppWindow) {
     app.set_settings_strings(SettingsStrings {
@@ -24,6 +72,7 @@ pub fn refresh_localized_strings(app: &AppWindow) {
         minimize_tray: i18n::tr("settings.tray_start_minimized", &[]).into(),
         close_to_tray: i18n::tr("settings.tray_close_to_tray", &[]).into(),
         save: i18n::tr("settings.save", &[]).into(),
+        wsl_settings: i18n::tr("settings.wsl_settings", &[]).into(),
     });
 
     app.set_about_strings(crate::AboutStrings {
@@ -40,6 +89,11 @@ pub fn refresh_localized_strings(app: &AppWindow) {
     });
 }
 
+/// Generic helper to get localized text for use in Handlers
+pub fn get_i18n_text(key: &str) -> String {
+    i18n::tr(key, &[])
+}
+
 // Refresh all core data
 pub async fn refresh_data(app_handle: slint::Weak<AppWindow>, app_state: Arc<Mutex<AppState>>) {
     debug!("refresh_data: Starting background data refresh");
@@ -50,6 +104,14 @@ pub async fn refresh_data(app_handle: slint::Weak<AppWindow>, app_state: Arc<Mut
     refresh_distros_ui(ah, as_ptr).await;
     
     // 2. Trigger initial background refresh to get live WSL data
+    // Mark as refreshed NOW to prevent periodic monitor from triggering immediately
+    {
+        let mut last_wsl = LAST_WSL_REFRESH.lock().unwrap();
+        *last_wsl = Some(Instant::now());
+        let mut last_usb = LAST_USB_REFRESH.lock().unwrap();
+        *last_usb = Some(Instant::now());
+    }
+
     let app_state_clone = app_state.clone();
     tokio::spawn(async move {
         let dashboard = {
@@ -84,21 +146,29 @@ pub async fn refresh_distros_ui(app_handle: slint::Weak<AppWindow>, app_state: A
 
     // Acquire all needed data under a single lock
     let (distros, executor, is_manual_op) = {
-        let app_state_lock = app_state.lock().await;
-        let mut distros = app_state_lock.wsl_dashboard.get_distros().await;
-        // Sort by: 1. Default first, 2. Name A-Z
-        distros.sort_by(|a, b| {
-            if a.is_default != b.is_default {
-                b.is_default.cmp(&a.is_default) // true (1) comes before false (0)
-            } else {
-                a.name.to_lowercase().cmp(&b.name.to_lowercase())
+        let lock_timeout = std::time::Duration::from_millis(1000);
+        match tokio::time::timeout(lock_timeout, app_state.lock()).await {
+            Ok(app_state_lock) => {
+                let mut distros = app_state_lock.wsl_dashboard.get_distros().await;
+                // Sort by: 1. Default first, 2. Name A-Z
+                distros.sort_by(|a, b| {
+                    if a.is_default != b.is_default {
+                        b.is_default.cmp(&a.is_default) // true (1) comes before false (0)
+                    } else {
+                        a.name.to_lowercase().cmp(&b.name.to_lowercase())
+                    }
+                });
+                (
+                    distros,
+                    app_state_lock.wsl_dashboard.executor().clone(),
+                    app_state_lock.wsl_dashboard.is_manual_operation(),
+                )
             }
-        });
-        (
-            distros,
-            app_state_lock.wsl_dashboard.executor().clone(),
-            app_state_lock.wsl_dashboard.is_manual_operation()
-        )
+            Err(_) => {
+                error!("refresh_distros_ui: AppState lock timeout, skipping UI refresh");
+                return;
+            }
+        }
     };
 
     // Quick check: has the actual data changed before we do heavy icon loading?

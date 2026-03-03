@@ -175,6 +175,14 @@ pub async fn set_dashboard_autostart(enable: bool, start_minimized: bool) -> Res
             format!("\"{}\"", path_str)
         };
         
+        // 1. Check if it's already set to the same value to avoid redundant writes
+        if let Some(current_val) = crate::utils::registry::read_reg_string_ext(windows::Win32::System::Registry::HKEY_CURRENT_USER, run_subkey, value_name) {
+            if current_val == command {
+                debug!("Dashboard autostart is already correctly set in registry, skipping write.");
+                return Ok(());
+            }
+        }
+
         info!("Enabling dashboard autostart in registry: {}", command);
         // Try native registry first
         match crate::utils::registry::write_reg_string(windows::Win32::System::Registry::HKEY_CURRENT_USER, run_subkey, value_name, &command) {
@@ -226,14 +234,41 @@ async fn set_dashboard_autostart_vbs_fallback(command: &str) -> Result<(), Box<d
     Ok(())
 }
 
+pub fn check_autostart_valid(start_minimized: bool) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    let exe_path = std::env::current_exe()?;
+    let path_str = exe_path.to_str().ok_or("Invalid executable path")?;
+    let run_subkey = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+    let value_name = "WSLDashboard";
+
+    let target_command = if start_minimized {
+        format!("\"{}\" /silent", path_str)
+    } else {
+        format!("\"{}\"", path_str)
+    };
+
+    if let Some(current_val) = crate::utils::registry::read_reg_string_ext(windows::Win32::System::Registry::HKEY_CURRENT_USER, run_subkey, value_name) {
+        Ok(current_val == target_command)
+    } else {
+        Ok(false)
+    }
+}
+
 /// Automatically repairs the autostart path if the software has been moved (portable mode).
 /// - If autostart is enabled, updates the registry with current path (and /silent if start_minimized)
 /// - If autostart is disabled, removes the registry entry if it exists
 pub async fn repair_autostart_path(autostart_enabled: bool, start_minimized: bool) {
     if autostart_enabled {
-        info!("System check: Autostart is enabled, verifying/updating path...");
-        if let Err(e) = set_dashboard_autostart(true, start_minimized).await {
-            warn!("Failed to repair autostart path: {}", e);
+        // Only log and update if something actually changed
+        match check_autostart_valid(start_minimized) {
+            Ok(true) => {
+                // Path is valid, do nothing
+            }
+            _ => {
+                info!("System check: Autostart is enabled but path is invalid or missing, updating...");
+                if let Err(e) = set_dashboard_autostart(true, start_minimized).await {
+                    warn!("Failed to repair autostart path: {}", e);
+                }
+            }
         }
     } else {
         // If autostart is disabled in config, ensure entries are removed

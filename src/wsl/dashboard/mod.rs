@@ -118,6 +118,7 @@ impl WslDashboard {
         distros_lock.clone()
     }
 
+    #[allow(dead_code)]
     pub async fn start_monitoring(&self) {
         let manager = self.clone();
         tokio::spawn(async move {

@@ -29,7 +29,7 @@ I18N :  [English](../README.md) | [简体中文](./README_zh_CN.md) | [繁體中
 - [💻 Sistem Gereksinimleri](#-sistem-gereksinimleri)
 - [📦 Kurulum Kılavuzu](#-kurulum-kılavuzu)
 - [🛠️ Teknoloji Yığını ve Performans](#️-teknoloji-yığını-ve-performans)
-- [📄 Lisans](#-lisans)
+  - [📄 Lisans](#-lisans)
 
 ---
 
@@ -105,6 +105,16 @@ Günlük dosyaları yapılandırılan günlük dizinine yazılır ve sorunları 
 <p align="center">
   <img src="../assets/screenshot/home.png" width="48%" />
   <img src="../assets/screenshot/home-dark.png" width="48%" />
+</p>
+
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
 </p>
 
 ### Örnek Ekle ve Ayarlar

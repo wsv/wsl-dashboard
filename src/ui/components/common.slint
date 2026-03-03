@@ -122,7 +122,9 @@ export component ActionIcon inherits Rectangle {
     in property <string> icon;
     in property <image> icon_image;
     in property <bool> is_font_icon: false;
+    in property <bool> show_shield: false;
     in property <string> tooltip: "";
+    in property <brush> icon_color: Theme.text_primary;
     callback clicked;
     width: 28px;
     height: 28px;
@@ -137,6 +139,7 @@ export component ActionIcon inherits Rectangle {
         border-color: Theme.border_color;
         border-width: 1px;
         border-radius: 4px;
+        z: 100;
         
         // Dynamic Positioning - Reverted to static history behavior
         x: (parent.width - self.width) / 2;
@@ -158,7 +161,7 @@ export component ActionIcon inherits Rectangle {
         text: icon;
         font-size: 14px;
         font-family: Theme.icon_font;
-        color: Theme.text_primary;
+        color: root.icon_color;
         horizontal-alignment: center;
         vertical-alignment: center;
     }
@@ -171,6 +174,25 @@ export component ActionIcon inherits Rectangle {
         image-fit: contain;
     }
 
+    // Admin Shield Overlay
+    if (show_shield): Rectangle {
+        width: 12px;
+        height: 12px;
+        // Positioned at bottom right (LTR) or bottom left (RTL)
+        x: AppI18n.is-rtl ? -2px : parent.width - self.width + 2px;
+        y: parent.height - self.height + 2px;
+        background: Theme.card_bg;
+        border-radius: 3px;
+        z: 10;
+        Text {
+            text: "\u{EA18}"; // Shield icon
+            font-family: Theme.icon_font;
+            font-size: 10px;
+            color: #FFB900; // Windows gold color
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
     touch := TouchArea {
         clicked => {
             root.clicked();

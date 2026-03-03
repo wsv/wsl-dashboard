@@ -107,6 +107,16 @@ Lokitiedostot kirjoitetaan m채채ritettyyn lokihakemistoon ja ne voidaan liitt채�
   <img src="../assets/screenshot/home-dark.png" width="48%" />
 </p>
 
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
+</p>
+
 ### Lis채채 instanssi ja asetukset
 <p align="center">
   <img src="../assets/screenshot/add.png" width="48%" />

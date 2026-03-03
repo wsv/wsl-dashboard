@@ -107,6 +107,16 @@ Soubory protokolů se zapisují do nakonfigurovaného adresáře a lze je přilo
   <img src="../assets/screenshot/home-dark.png" width="48%" />
 </p>
 
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
+</p>
+
 ### Přidat instanci a Nastavení
 <p align="center">
   <img src="../assets/screenshot/add.png" width="48%" />

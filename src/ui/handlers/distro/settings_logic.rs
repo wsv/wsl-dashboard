@@ -17,8 +17,14 @@ pub async fn perform_save_settings(
     info!("Operation: Save settings - {}", name);
 
     let executor = {
-        let state = as_ptr.lock().await;
-        state.wsl_dashboard.executor().clone()
+        let lock_timeout = std::time::Duration::from_millis(500);
+        match tokio::time::timeout(lock_timeout, as_ptr.lock()).await {
+            Ok(state) => state.wsl_dashboard.executor().clone(),
+            Err(_) => {
+                error!("perform_save_settings: AppState lock timeout");
+                return;
+            }
+        }
     };
 
     // Check if it was already default
@@ -81,9 +87,11 @@ pub async fn perform_save_settings(
     };
 
     {
-        let state = as_ptr.lock().await;
-        if let Err(e) = state.config_manager.update_instance_config(&name, config) {
-            error!("Failed to save instance settings for '{}': {}", name, e);
+        let lock_timeout = std::time::Duration::from_millis(500);
+        if let Ok(state) = tokio::time::timeout(lock_timeout, as_ptr.lock()).await {
+            if let Err(e) = state.config_manager.update_instance_config(&name, config) {
+                error!("Failed to save instance settings for '{}': {}", name, e);
+            }
         }
     }
 

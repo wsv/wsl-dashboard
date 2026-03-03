@@ -107,6 +107,16 @@ Los archivos de registro se escriben en el directorio configurado y pueden adjun
   <img src="../assets/screenshot/home-dark.png" width="48%" />
 </p>
 
+<p align="center">
+  <img src="../assets/screenshot/home-settings.png" width="48%" />
+  <img src="../assets/screenshot/home-configs.png" width="48%" />
+</p>
+
+### USB
+<p align="center">
+  <img src="../assets/screenshot/usb.png" width="48%" />
+</p>
+
 ### Añadir Instancia y Configuración
 <p align="center">
   <img src="../assets/screenshot/add.png" width="48%" />

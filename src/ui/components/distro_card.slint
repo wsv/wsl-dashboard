@@ -12,6 +12,7 @@ component DistroInfo inherits VerticalLayout {
         text: distro.name;
         font-size: 14px * LayoutConstants.font-scale;
         font-weight: 400;
+        font-family: Theme.default_font;
         color: Theme.text_primary;
         overflow: elide;
         horizontal-alignment: is-rtl ? right : left;
@@ -20,6 +21,7 @@ component DistroInfo inherits VerticalLayout {
     Text {
         text: AppI18n.t(distro.status == "Running" ? "distro.running" : (distro.status == "Stopped" ? "distro.stopped" : "distro.installing"), [AppI18n.version]);
         font-size: 12px * LayoutConstants.font-scale;
+        font-family: Theme.default_font;
         color: Theme.text_secondary;
         horizontal-alignment: is-rtl ? right : left;
     }
@@ -55,6 +57,32 @@ component DistroBadge inherits VerticalLayout {
                 font-size: 12px * LayoutConstants.font-scale;
                 font-weight: 800;
                 color: Theme.text_primary;
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+        }
+
+        // Tooltip
+        Rectangle {
+            visible: touch.has-hover && distro.distro_display_name != "";
+            opacity: (touch.has-hover && distro.distro_display_name != "") ? 1 : 0;
+            background: Theme.dark_mode ? #2D2D30 : #FFFFFF;
+            border-color: Theme.border_color;
+            border-width: 1px;
+            border-radius: 4px;
+            z: 100;
+            x: (parent.width - self.width) / 2;
+            y: -4px;
+            width: tt_text.width + 12px;
+            height: tt_text.height + 6px;
+            tt_text := Text {
+                text: distro.distro_display_name;
+                color: Theme.text_primary;
+                font-size: 11px * LayoutConstants.font-scale;
+                font-family: Theme.default_font;
+                horizontal-alignment: center;
+                vertical-alignment: center;
             }
         }
     }
@@ -151,6 +179,7 @@ component ExpandedActionIcons inherits VerticalLayout {
     callback move_distro();
     callback delete_distro();
     callback settings();
+    callback configs();
     alignment: center; // Vertically center (core)
     
     HorizontalLayout {
@@ -217,6 +246,15 @@ component ExpandedActionIcons inherits VerticalLayout {
                 root.settings();
             }
         }
+
+        ActionIcon {
+            icon: "\u{E835}";
+            is_font_icon: true;
+            tooltip: AppI18n.t("distro.configs", [AppI18n.version]);
+            clicked => {
+                root.configs();
+            }
+        }
     }
 }
 
@@ -237,6 +275,7 @@ export component DistroCard inherits Rectangle {
     callback clone_clicked;
     callback move_clicked;
     callback information_clicked;
+    callback configs_clicked;
     callback expand_clicked;
     height: expanded ? 96px : 48px;
     background: (distro.is_default && !sole_distro) ? (Theme.dark_mode ? #2b3c4e : #e6f4ff98) : Theme.card_bg;
@@ -383,6 +422,9 @@ export component DistroCard inherits Rectangle {
                         settings => {
                             root.settings_clicked();
                         }
+                        configs => {
+                            root.configs_clicked();
+                        }
                     }
                     Rectangle {
                         horizontal-stretch: 1;
@@ -410,6 +452,9 @@ export component DistroCard inherits Rectangle {
                         }
                         settings => {
                             root.settings_clicked();
+                        }
+                        configs => {
+                            root.configs_clicked();
                         }
                     }
                 }

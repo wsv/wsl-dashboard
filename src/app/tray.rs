@@ -15,6 +15,7 @@ unsafe impl Send for TrayIconWrapper {}
 unsafe impl Sync for TrayIconWrapper {}
 
 static TRAY_ICON: Lazy<Mutex<Option<TrayIconWrapper>>> = Lazy::new(|| Mutex::new(None));
+static EVENT_LOOP_STARTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 pub struct SystemTray;
 
@@ -51,54 +52,55 @@ impl SystemTray {
         let mut global_tray = TRAY_ICON.lock().map_err(|e| format!("Failed to lock tray icon: {}", e))?;
         *global_tray = Some(TrayIconWrapper(tray));
 
-        let app_weak_clone = app_weak.clone();
-
-        // Ensure initial state represents the start_minimized configuration
         if let Some(app) = app_weak.upgrade() {
             app.set_is_window_visible(initially_visible);
         }
 
-        let timer = slint::Timer::default();
-        timer.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(100), move || {
-            // Poll Tray Events (Toggle visibility on DoubleClick)
-            while let Ok(event) = TrayIconEvent::receiver().try_recv() {
-                match event {
-                    TrayIconEvent::DoubleClick { .. } => {
-                        if let Some(app) = app_weak_clone.upgrade() {
-                            let is_visible = app.get_is_window_visible();
-                            if is_visible {
-                                info!("Tray double-clicked: hiding window");
-                                app.set_is_window_visible(false);
-                                crate::app::window::set_skip_taskbar(&app, true);
-                            } else {
-                                info!("Tray double-clicked: showing window");
+        // Only start the event polling timer once
+        if EVENT_LOOP_STARTED.compare_exchange(false, true, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok() {
+            let app_weak_clone = app_weak.clone();
+            let timer = slint::Timer::default();
+            timer.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(100), move || {
+                // Poll Tray Events (Toggle visibility on DoubleClick)
+                while let Ok(event) = TrayIconEvent::receiver().try_recv() {
+                    match event {
+                        TrayIconEvent::DoubleClick { .. } => {
+                            if let Some(app) = app_weak_clone.upgrade() {
+                                let is_visible = app.get_is_window_visible();
+                                if is_visible {
+                                    info!("Tray double-clicked: hiding window");
+                                    app.set_is_window_visible(false);
+                                    crate::app::window::set_skip_taskbar(&app, true);
+                                } else {
+                                    info!("Tray double-clicked: showing window");
+                                    crate::app::window::show_and_center(&app);
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Poll Menu Events
+                while let Ok(event) = MenuEvent::receiver().try_recv() {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(app) = app_weak_clone.upgrade() {
+                                info!("Tray menu 'show' clicked");
                                 crate::app::window::show_and_center(&app);
                             }
                         }
-                    }
-                    _ => {}
-                }
-            }
-
-            // Poll Menu Events
-            while let Ok(event) = MenuEvent::receiver().try_recv() {
-                match event.id.as_ref() {
-                    "show" => {
-                        if let Some(app) = app_weak_clone.upgrade() {
-                            info!("Tray menu 'show' clicked");
-                            crate::app::window::show_and_center(&app);
+                        "exit" => {
+                            info!("Exit requested from tray menu");
+                            slint::quit_event_loop().unwrap();
                         }
+                        _ => {}
                     }
-                    "exit" => {
-                        info!("Exit requested from tray menu");
-                        slint::quit_event_loop().unwrap();
-                    }
-                    _ => {}
                 }
-            }
-        });
-        
-        std::mem::forget(timer);
+            });
+            
+            std::mem::forget(timer);
+        }
 
         Ok(())
     }
