@@ -214,7 +214,7 @@ I18N :  [English](../README.md) | [简体中文](./README_zh_CN.md) | [繁體中
 
 ---
 
-נבנה עם ❤️ עבור קהילת ה-WSL.
+Built with ❤️ for the WSL Community.
 
 ---
 
@@ -222,14 +222,13 @@ I18N :  [English](../README.md) | [简体中文](./README_zh_CN.md) | [繁體中
 
 A big thank you to the following communities for their support:
 
-- `https://www.rust-lang.org/community`  - For the powerful and safe programming language
-- `https://slint.dev/community`  - For the modern UI framework
-- `https://github.com/microsoft/WSL/discussions`  - For the amazing Windows Subsystem for Linux
-- `https://tokio.rs/community`  - For the efficient async runtime
-- `https://developer.microsoft.com/en-us/windows/community`  - For continuous platform improvements
-- `https://www.reddit.com`  - For global community discussions and support
-- `https://www.linux.do`  - For popular community for IT professionals
-- `https://www.v2ex.com`  - For Chinese tech community discussions
+- [Rust Community](https://www.rust-lang.org/community) - For the powerful and safe programming language
+- [Slint Community](https://slint.dev/community) - For the modern UI framework
+- [WSL Community](https://github.com/microsoft/WSL/discussions) - For the amazing Windows Subsystem for Linux
+- [Tokio Community](https://tokio.rs/community) - For the efficient async runtime
+- [Windows Developer Community](https://developer.microsoft.com/en-us/windows/community) - For continuous platform improvements
+- [Reddit](https://www.reddit.com) - For global community discussions and support
+- [Linux.do](https://linux.do) - For popular community for IT professionals
+- [V2EX](https://www.v2ex.com) - For Chinese tech community discussions
 
 Your contributions and feedback make this project possible!
-
